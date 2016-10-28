@@ -1,0 +1,68 @@
+---
+title: "Human damage caused by US Storms"
+author: "Rohit Padebettu"
+date: "10/28/2016"
+output: slidy_presentation
+---
+
+## Deaths and Fatalities caused by Storms
+
+- **Data**: Obtained from the [NOAA Website](http://www.ncdc.noaa.gov/stormevents/ftp.jsp)
+- **Data Processing**:  Post 1992 data is selected for analysis
+- **Data Analysis**: 
+    + Fatalities and Injuries are aggregated over all years
+    + Intensity is calculated as ratio of Fatalities to Injuries
+- **Result**:   The top 10 storms which cause the most damage are plotted
+
+```{r echo= FALSE,warning=FALSE}
+suppressPackageStartupMessages(library(R.utils))         # for unzipping the file
+suppressPackageStartupMessages(library(data.table))      # for quick reading and subsetting
+suppressPackageStartupMessages(library(lubridate))       # for date transformations
+suppressPackageStartupMessages(library(dplyr) )          # for data transformations
+suppressPackageStartupMessages(library(ggplot2))         # for plots
+suppressPackageStartupMessages(library(ggthemes))        # themes for plots
+suppressPackageStartupMessages(library(plotly) )         # for fancier interactive plots
+
+suppressMessages(StormData<-fread("/Users/rohitpittu/R Projects/DataScience/Reproducible Research/Final Course Project//Data/StormData.csv",header = TRUE,strip.white = TRUE))
+
+### Converting to Date format to allow subsetting
+StormData$BgnDate <- as_date(mdy_hms(StormData$BGN_DATE))
+StormData$EndDate <- as_date(mdy_hms(StormData$END_DATE))
+
+### Getting only post 1992 data
+StormData_sub <- StormData[year(BgnDate)>1992,
+                           .(BgnDate,EndDate,REFNUM,
+                            STATE,STATE__,COUNTY,COUNTYNAME,
+                            EVTYPE,FATALITIES,INJURIES
+                            )]
+
+## Top Event Types which cause the most human damage
+Data_hum<-StormData_sub%>%
+    select(Date=BgnDate,Event=EVTYPE,FATALITIES,INJURIES)%>%
+    mutate(Event = as.factor(toupper(trim(Event))))%>%
+    group_by(Event)%>%
+    summarize(HumanDamage=sum(FATALITIES,INJURIES),
+              Deaths=sum(FATALITIES))%>%
+    mutate(Intensity = Deaths/HumanDamage)%>%
+    arrange(desc(HumanDamage))
+
+### Select top 10 Event Types
+Data_top10_h<-Data_hum[c(1:10),]
+
+```
+
+## Results
+
+```{r, echo=FALSE, warning=FALSE}
+### Plot the results
+g3<-ggplot(Data_top10_h,aes(x=factor(Event),y=HumanDamage,fill=Intensity))+
+    geom_bar(stat="identity",col="black",width=0.5)+
+    scale_fill_gradient(low = "yellow", high = "red")+
+    coord_flip()+
+    ylab("Human Damage(Fatalities+Injuries)")+
+    xlab("Top 10 Event Types")+
+    ggtitle("Event types causing most human damage")+
+    theme_fivethirtyeight()
+ggplotly(g3)
+```
+
