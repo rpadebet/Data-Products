@@ -25,7 +25,7 @@ shinyServer(function(input, output) {
             company<-read.csv(file =File,stringsAsFactors = F,header = T )
             tickers = sample(company$Ticker.Symbol,picks)
             company.name = company[company$Ticker.Symbol %in% tickers,]
-            benchmark_ticker<-c('^GSPC')
+            benchmark_ticker<-c('^SP500TR')
             
             # Download the prices data from Yahoo
             data.env <- new.env()
